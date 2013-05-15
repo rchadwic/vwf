@@ -24,6 +24,7 @@ define( [ "module", "vwf/view", "vwf/utility" ], function( module, view, utility
 
             this.pickInterval = 10;
             this.disableInputs = false;
+            this.pointerVector = undefined;
 
             if(typeof options == "object") {
                 this.rootSelector = options["application-root"];
@@ -405,11 +406,12 @@ define( [ "module", "vwf/view", "vwf/utility" ], function( module, view, utility
 
                 // QUESTION: Is the double use of y a bug?  I would assume so, but then why not
                 //           just use worldCamTrans as-is?
-                worldCamPos = [ worldCamTrans.x, worldCamTrans.y, worldCamTrans.y];
+                worldCamPos = [ worldCamTrans.x, worldCamTrans.y, worldCamTrans.z];
             }
 
             returnData.eventNodeData = { "": [ {
                 pickID: pointerPickID,
+                pointerVector: self.pointerVector ? vec3ToArray( self.pointerVector ) : undefined,
                 distance: pickInfo ? pickInfo.distance : undefined,
                 origin: pickInfo ? pickInfo.worldCamPos : undefined,
                 globalPosition: pickInfo ? [pickInfo.point.x,pickInfo.point.y,pickInfo.point.z] : undefined,
@@ -471,6 +473,7 @@ define( [ "module", "vwf/view", "vwf/utility" ], function( module, view, utility
                                         
                     returnData.eventNodeData[ childID ] = [ {
                         pickID: pointerPickID,
+                        pointerVector: self.pointerVector ? vec3ToArray( self.pointerVector ) : undefined,
                         position: localTrans,
                         normal: localNormal,
                         source: relativeCamPos,
@@ -824,7 +827,6 @@ define( [ "module", "vwf/view", "vwf/utility" ], function( module, view, utility
     {
         if(!this.lastEventData) return;
         
-        
         var threeCam = sceneNode.camera.threeJScameras[sceneNode.camera.ID];
         if(!this.raycaster) this.raycaster = new THREE.Raycaster();
         if(!this.projector) this.projector = new THREE.Projector();
@@ -838,19 +840,19 @@ define( [ "module", "vwf/view", "vwf/utility" ], function( module, view, utility
         var x = ( mousepos.x ) * 2 - 1;
         var y = -( mousepos.y ) * 2 + 1;
 
-        var directionVector = new THREE.Vector3();
+        this.pointerVector = new THREE.Vector3();
         
         //console.info( "mousepos = " + x + ", " + y );
-        directionVector.set( x, y, 0.5 );
+        this.pointerVector.set( x, y, 0.5 );
         
-        this.projector.unprojectVector(directionVector, threeCam);
+        this.projector.unprojectVector(this.pointerVector, threeCam);
         var pos = new THREE.Vector3();
         pos.getPositionFromMatrix( threeCam.matrix );
-        directionVector.sub(pos);
-        directionVector.normalize();
+        this.pointerVector.sub(pos);
+        this.pointerVector.normalize();
         
         
-        this.raycaster.set(pos, directionVector);
+        this.raycaster.set(pos, this.pointerVector);
         var intersects = this.raycaster.intersectObjects(sceneNode.threeScene.children, true);
         if (intersects.length) {
             var target = intersects[0].object;
@@ -879,6 +881,10 @@ define( [ "module", "vwf/view", "vwf/utility" ], function( module, view, utility
         else if(threeObject.parent)
          return getPickObjectID(threeObject.parent);
         return null;    
+    }
+
+    function vec3ToArray( vec ) {
+        return [ vec.x, vec.y, vec.z ];
     }
 
     function indentStr() {
