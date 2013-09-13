@@ -2473,7 +2473,7 @@ if ( ! childComponent.source ) {
 
             // Call settingProperties() on each model.
 
-            properties = this.models.reduceRight( function( intermediate_properties, model, index ) {  // TODO: note that we can't go left to right and stop after the first that accepts the set since we are setting all of the properties as a batch; verify that this creates the same result as calling setProperty individually on each property and that there are no side effects from setting through a driver after the one that handles the set.
+            properties = this.models.reduceRight( function( intermediate_properties, model, driverIndex ) {  // TODO: note that we can't go left to right and stop after the first that accepts the set since we are setting all of the properties as a batch; verify that this creates the same result as calling setProperty individually on each property and that there are no side effects from setting through a driver after the one that handles the set.
 
                 var model_properties = {};
 
@@ -2487,7 +2487,7 @@ if ( ! childComponent.source ) {
 
                         if ( properties[propertyName] !== undefined ) {
 
-                            var reentry = entrants[nodeID+'-'+propertyName] = { index: index }; // the active model number from this call  // TODO: need unique nodeID+propertyName hash
+                            var reentry = entrants[nodeID+'-'+propertyName] = { driverIndex: driverIndex }; // the active model number from this call  // TODO: need unique nodeID+propertyName hash
 
                             model_properties[propertyName] =
                                 model.settingProperty( nodeID, propertyName, properties[propertyName] );
@@ -2556,11 +2556,11 @@ if ( ! childComponent.source ) {
 
             var node = nodes.existing[nodeID];
 
-            var entrants = this.getProperty.entrants;
+            var entrants = this.getProperty.entries;
 
             // Call gettingProperties() on each model.
 
-            var properties = this.models.reduceRight( function( intermediate_properties, model, index ) {  // TODO: note that we can't go left to right and take the first result since we are getting all of the properties as a batch; verify that this creates the same result as calling getProperty individually on each property and that there are no side effects from getting through a driver after the one that handles the get.
+            var properties = this.models.reduceRight( function( intermediate_properties, model, driverIndex ) {  // TODO: note that we can't go left to right and take the first result since we are getting all of the properties as a batch; verify that this creates the same result as calling getProperty individually on each property and that there are no side effects from getting through a driver after the one that handles the get.
 
                 var model_properties = {};
 
@@ -2572,7 +2572,7 @@ if ( ! childComponent.source ) {
 
                     Object.keys( node.properties.existing ).forEach( function( propertyName ) {
 
-                        var reentry = entrants[nodeID+'-'+propertyName] = { index: index }; // the active model number from this call  // TODO: need unique nodeID+propertyName hash
+                        var reentry = entrants[nodeID+'-'+propertyName] = { driverIndex: driverIndex }; // the active model number from this call  // TODO: need unique nodeID+propertyName hash
 
                         model_properties[propertyName] =
                             model.gettingProperty( nodeID, propertyName, intermediate_properties[propertyName] );
@@ -2998,7 +2998,7 @@ if ( ! childComponent.source ) {
 
                 // If 'entries.numAssignments' changes during the driver call, it means that it
                 // delegated to another property.
-                var delegated = ( entries.numAssignments !== numAssignmentsBeforeDriverCall );
+                delegated = ( entries.numAssignments !== numAssignmentsBeforeDriverCall );
 
                 if ( valueExists ) {
 
@@ -3013,7 +3013,7 @@ if ( ! childComponent.source ) {
                     }
                 }
 
-                // Exit from the this.models.some() iterator once the valu has been set.
+                // Exit from the this.models.some() iterator once the value has been set.
                 return delegated || assigned;
 
             }, this );
@@ -3038,9 +3038,8 @@ if ( ! childComponent.source ) {
 
             } else {
 
-                // For a reentrant call, restore the previous state, move the index forward to cover
-                // the models we called.
-
+                // For a reentrant call, restore the previous state and set its flag that lets it 
+                // know that the property was assigned
                 entries[ thisProperty ] = outerEntry;
                 outerEntry.propertyAssignedByPreviousEntry = true;
 
@@ -3070,80 +3069,76 @@ if ( ! childComponent.source ) {
 
             var propertyValue = undefined;
 
+            var entries = this.getProperty.entries;
+
             // Record calls into this function by nodeID and propertyName so that models may call
             // back here (directly or indirectly) to delegate responses further down the chain
             // without causing infinite recursion.
 
-            var entrants = this.getProperty.entrants;
+            // TODO: need unique nodeID+propertyName hash
+            var thisProperty = nodeID + '-' + propertyName;
 
-            var entry = entrants[nodeID+'-'+propertyName] || {}; // the most recent call, if any  // TODO: need unique nodeID+propertyName hash
-            var reentry = entrants[nodeID+'-'+propertyName] = {}; // this call
+            // Previous entry to setProperty for this property on this node
+            var outerEntry = entries[ thisProperty ] || {};
 
-            // Keep track of the number of assignments made by this `setProperty` call and others
-            // invoked indirectly by it, starting with the outermost call.
+            // Current entry to setProperty for this property on this node
+            var thisEntry = {};
+            entries[ thisProperty ] = thisEntry;
 
-            var outermost = entrants.retrievals === undefined;
+            var isOutermostEntry = ( outerEntry.driverIndex === undefined );
 
-            if ( outermost ) {
-                entrants.retrievals = 0;
-            }
+            // We'll need to know if the get was:
+            // -delegated to other properties or
+            // -actually retrieved here
+            var retrieved = false;
 
-            // We'll need to know if the set was delegated to other properties, actually assigned
-            // here, or if blocked during replication while attempting to delegate.
+            // Call gettingProperty() on each model. The first model to return a non-undefined 
+            // value dictates the return value.
+            this.models.some( function( modelDriver, driverIndex ) {
 
-            var delegated = false, retrieved = false, blocked = false;
-
-            // Call gettingProperty() on each model. The first model to return a non-undefined value
-            // dictates the return value.
-
-            this.models.some( function( model, index ) {
-
-                // Skip models up through the one making the most recent call here (if any).
-
-                if ( ( entry.index === undefined || index > entry.index ) && ! reentry.completed ) {
-
-                    // Record the active model number.
- 
-                    reentry.index = index;
-
-                    // Record the number of retrievals made since the outermost call. When
-                    // `entrants.retrievals` increases, a driver has called `getProperty` to make
-                    // an assignment elsewhere.
-
-                    var retrievals = entrants.retrievals;
-
-                    // Make the call.
-
-                    var value = model.gettingProperty &&
-                        model.gettingProperty( nodeID, propertyName, propertyValue );  // TODO: probably don't need propertyValue here
-
-                    // Look for a return value potentially stored here by a reentrant call if the
-                    // model didn't return one explicitly (such as with a JavaScript accessor
-                    // method).
-
-                    if ( value === undefined ) {
-                        value = reentry.value;
-                    }
-
-                    // Ignore the result if reentry is disabled and the driver attempted to call
-                    // back into the kernel. Kernel reentry is disabled during replication to 
-                    // prevent coloring from accessor scripts.
-
-                    if ( this.models.kernel.blocked() ) {  // TODO: this might be better handled wholly in vwf/kernel/model by converting to a stage and clearing blocked results on the return
-                        value = undefined;
-                        blocked = true;
-                    }
-
-                    // Record the value retrieved.
-
-                    if ( value !== undefined ) {
-                        propertyValue = value;
-                    }
-
-                    // Exit from the this.models.some() iterator once we have a return value.
-
-                    return value !== undefined;
+                // Skip initial model drivers that a previous call has already invoked for this 
+                // node and property (if any).
+                var driverInvoked = ( !isOutermostEntry && ( driverIndex <= outerEntry.driverIndex ) );
+                if ( driverInvoked ) {
+                  return false;
                 }
+
+                // If a reentrant call completed for this node and property, skip the remaining
+                // model drivers.
+                if ( thisEntry.propertyRetrievedByPreviousEntry ) {
+                  return true;
+                }
+
+                // Record the active model driver number.
+                thisEntry.driverIndex = driverIndex;
+
+                // Make the call.
+                var value = modelDriver.gettingProperty && modelDriver.gettingProperty( nodeID, propertyName, propertyValue );  // TODO: probably don't need propertyValue here
+
+                // Look for a return value potentially stored here by a reentrant call if the
+                // model driver didn't return one explicitly (such as with a JavaScript 
+                // accessor method).
+                if ( value === undefined ) {
+                    value = thisEntry.value;
+                }
+
+                // Ignore the result if reentry is disabled and the driver attempted to call
+                // back into the kernel. Kernel reentry is disabled during replication to 
+                // prevent coloring from accessor scripts.
+
+                if ( this.models.kernel.blocked() ) {  // TODO: this might be better handled wholly in vwf/kernel/model by converting to a stage and clearing blocked results on the return
+                    value = undefined;
+                }
+
+                var valueExists = ( value !== undefined );
+
+                // Record the value retrieved.
+                if ( valueExists ) {
+                    propertyValue = value;
+                }
+
+                // Exit from the this.models.some() iterator once we have a return value.
+                return valueExists;
 
             }, this );
 
@@ -3171,37 +3166,22 @@ if ( ! childComponent.source ) {
 
             }
 
-            // Call gotProperty() on each view.
-            // Don't notify for inner, reentrant calls since the outer call will notify.
-            // Also don't notify if attempted delegation was blocked during replication since it
-            // makes this like an inner call.
+            if ( isOutermostEntry ) {
 
-            var reentrant = (entry.index !== undefined);
-
-            if ( !reentrant ) {
+                // The first entry calls gotProperty() on each view
                 this.views.forEach( function( view ) {
                     view.gotProperty && view.gotProperty( nodeID, propertyName, propertyValue );  // TODO: be sure this is the value actually gotten and not an intermediate value from above
                 } );
-            }
 
-            // For a reentrant call, restore the previous state, move the index forward to cover
-            // the models we called, and record the current result.
-            if ( entry.index !== undefined ) {
-                entrants[nodeID+'-'+propertyName] = entry;
-                entry.value = propertyValue;
+                // Clean up since we've retrieved the property
+                delete entries[ thisProperty ];
+            } else {
 
-            }
-
-            // Delete the call record if this is the first, non-reentrant call here (the normal
-            // case).
-            else {
-                delete entrants[nodeID+'-'+propertyName];
-            }
-
-            // Clear the assignment counter when the outermost `setProperty` completes.
-
-            if ( outermost ) {
-                delete entrants.retrievals;
+                // For a reentrant call, restore the previous state, move the index forward to cover
+                // the model drivers we called, and record the current result.
+                entries[ thisProperty ] = outerEntry;
+                outerEntry.value = propertyValue;
+                outerEntry.propertyRetrievedByPreviousEntry = true;
             }
 
             this.logger.debugu();
@@ -3209,7 +3189,7 @@ if ( ! childComponent.source ) {
             return propertyValue;
         };
 
-        this.getProperty.entrants = {}; // maps ( nodeID + '-' + propertyName ) => { index: i, value: v }
+        this.getProperty.entries = {}; // maps ( nodeID + '-' + propertyName ) => { ... }
 
         // -- createMethod -------------------------------------------------------------------------
 
