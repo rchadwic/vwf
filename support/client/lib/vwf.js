@@ -2469,33 +2469,39 @@ if ( ! childComponent.source ) {
 
             var node = nodes.existing[nodeID];
 
-            var entrants = this.setProperty.entries;
+            var entries = this.setProperty.entries;
 
-            // Call settingProperties() on each model.
+            // Call settingProperties() on each model driver.
 
-            properties = this.models.reduceRight( function( intermediate_properties, model, driverIndex ) {  // TODO: note that we can't go left to right and stop after the first that accepts the set since we are setting all of the properties as a batch; verify that this creates the same result as calling setProperty individually on each property and that there are no side effects from setting through a driver after the one that handles the set.
+            properties = this.models.reduceRight( function( intermediate_properties, modelDriver, 
+                                                            driverIndex ) {  // TODO: note that we can't go left to right and stop after the first that accepts the set since we are setting all of the properties as a batch; verify that this creates the same result as calling setProperty individually on each property and that there are no side effects from setting through a driver after the one that handles the set.
 
                 var model_properties = {};
 
-                if ( model.settingProperties ) {
+                if ( modelDriver.settingProperties ) {
 
-                    model_properties = model.settingProperties( nodeID, properties );
+                    model_properties = modelDriver.settingProperties( nodeID, properties );
 
-                } else if ( model.settingProperty ) {
+                } else if ( modelDriver.settingProperty ) {
 
                     Object.keys( node.properties.existing ).forEach( function( propertyName ) {
 
-                        if ( properties[propertyName] !== undefined ) {
+                        var propertyValue = properties[ propertyName ];
 
-                            var reentry = entrants[nodeID+'-'+propertyName] = { driverIndex: driverIndex }; // the active model number from this call  // TODO: need unique nodeID+propertyName hash
+                        if ( propertyValue !== undefined ) {
 
-                            model_properties[propertyName] =
-                                model.settingProperty( nodeID, propertyName, properties[propertyName] );
+                            // TODO: need unique nodeID+propertyName hash
+                            var thisProperty = nodeID + '-' + propertyName;
+
+                            entries[ thisProperty ] = { driverIndex: driverIndex }; // the active model driver number from this call
+
+                            model_properties[ propertyName ] =
+                                modelDriver.settingProperty( nodeID, propertyName, propertyValue );
                             if ( vwf.models.kernel.blocked() ) {
-                                model_properties[propertyName] = undefined; // ignore result from a blocked setter
+                                model_properties[ propertyName ] = undefined; // ignore result from a blocked setter
                             }
 
-                            delete entrants[nodeID+'-'+propertyName];
+                            delete entries[ thisProperty ];
 
                         }
 
@@ -2504,10 +2510,10 @@ if ( ! childComponent.source ) {
                 }
 
                 Object.keys( node.properties.existing ).forEach( function( propertyName ) {
-                    if ( model_properties[propertyName] !== undefined ) { // copy values from this model
-                        intermediate_properties[propertyName] = model_properties[propertyName];
-                    } else if ( intermediate_properties[propertyName] === undefined ) { // as well as recording any new keys
-                        intermediate_properties[propertyName] = undefined;
+                    if ( model_properties[ propertyName ] !== undefined ) { // copy values from this model driver
+                        intermediate_properties[ propertyName ] = model_properties[ propertyName ];
+                    } else if ( intermediate_properties[ propertyName ] === undefined ) { // as well as recording any new keys
+                        intermediate_properties[ propertyName ] = undefined;
                     }
                 } );
 
@@ -2531,7 +2537,7 @@ if ( ! childComponent.source ) {
                     view.satProperties( nodeID, properties );
                 } else if ( view.satProperty ) {
                     for ( var propertyName in properties ) {
-                        view.satProperty( nodeID, propertyName, properties[propertyName] );  // TODO: be sure this is the value actually set, not the incoming value
+                        view.satProperty( nodeID, propertyName, properties[ propertyName ] );  // TODO: be sure this is the value actually set, not the incoming value
                     }
                 }
 
@@ -2554,43 +2560,47 @@ if ( ! childComponent.source ) {
 
             this.logger.debuggx( "getProperties", nodeID );
 
-            var node = nodes.existing[nodeID];
+            var node = nodes.existing[ nodeID ];
 
-            var entrants = this.getProperty.entries;
+            var entries = this.getProperty.entries;
 
-            // Call gettingProperties() on each model.
+            // Call gettingProperties() on each model driver.
 
-            var properties = this.models.reduceRight( function( intermediate_properties, model, driverIndex ) {  // TODO: note that we can't go left to right and take the first result since we are getting all of the properties as a batch; verify that this creates the same result as calling getProperty individually on each property and that there are no side effects from getting through a driver after the one that handles the get.
+            var properties = this.models.reduceRight( function( intermediate_properties, 
+                                                                modelDriver, driverIndex ) {  // TODO: note that we can't go left to right and take the first result since we are getting all of the properties as a batch; verify that this creates the same result as calling getProperty individually on each property and that there are no side effects from getting through a driver after the one that handles the get.
 
                 var model_properties = {};
 
-                if ( model.gettingProperties ) {
+                if ( modelDriver.gettingProperties ) {
 
-                    model_properties = model.gettingProperties( nodeID, properties );
+                    model_properties = modelDriver.gettingProperties( nodeID, properties );
 
-                } else if ( model.gettingProperty ) {
+                } else if ( modelDriver.gettingProperty ) {
 
                     Object.keys( node.properties.existing ).forEach( function( propertyName ) {
 
-                        var reentry = entrants[nodeID+'-'+propertyName] = { driverIndex: driverIndex }; // the active model number from this call  // TODO: need unique nodeID+propertyName hash
+                        // TODO: need unique nodeID+propertyName hash
+                        var thisProperty = nodeID + '-' + propertyName;
 
-                        model_properties[propertyName] =
-                            model.gettingProperty( nodeID, propertyName, intermediate_properties[propertyName] );
+                        entries[ thisProperty ] = { driverIndex: driverIndex }; // the active model driver number from this call
+
+                        model_properties[ propertyName ] =
+                            modelDriver.gettingProperty( nodeID, propertyName, intermediate_properties[ propertyName ] );
                         if ( vwf.models.kernel.blocked() ) {
-                            model_properties[propertyName] = undefined; // ignore result from a blocked getter
+                            model_properties[ propertyName ] = undefined; // ignore result from a blocked getter
                         }
 
-                        delete entrants[nodeID+'-'+propertyName];
+                        delete entries[ thisProperty ];
 
                     } );
 
                 }
 
                 Object.keys( node.properties.existing ).forEach( function( propertyName ) {
-                    if ( model_properties[propertyName] !== undefined ) { // copy values from this model
-                        intermediate_properties[propertyName] = model_properties[propertyName];
-                    } else if ( intermediate_properties[propertyName] === undefined ) { // as well as recording any new keys
-                        intermediate_properties[propertyName] = undefined;
+                    if ( model_properties[ propertyName ] !== undefined ) { // copy values from this model driver
+                        intermediate_properties[ propertyName ] = model_properties[ propertyName ];
+                    } else if ( intermediate_properties[ propertyName ] === undefined ) { // as well as recording any new keys
+                        intermediate_properties[ propertyName ] = undefined;
                     }
                 } );
 
@@ -2640,9 +2650,9 @@ if ( ! childComponent.source ) {
             // delegation)
             var entries = this.setProperty.entries;
 
-            // Record calls into this function by nodeID and propertyName so that models may call
-            // back here (directly or indirectly) to delegate responses further down the chain
-            // without causing infinite recursion.
+            // Record calls into this function by nodeID and propertyName so that model drivers 
+            // may call back here (directly or indirectly) to delegate responses further down the 
+            // chain without causing infinite recursion.
 
             // TODO: need unique nodeID+propertyName hash
             var thisProperty = nodeID + '-' + propertyName;
@@ -2669,9 +2679,9 @@ if ( ! childComponent.source ) {
             // -actually assigned here
             var delegated = false, assigned = false;
 
-            // Call creatingProperty() on each model. The first model to return a non-undefined 
-            // value has performed the create and dictates the return value. The property is 
-            // considered created after all models have run.
+            // Call creatingProperty() on each model driver. The first model to return a 
+            // non-undefined value has performed the create and dictates the return value.
+            // The property is considered created after all model drivers have run.
             this.models.forEach( function( modelDriver, driverIndex ) {
 
                 // Skip initial model drivers that a previous call has already invoked for this 
@@ -2748,8 +2758,8 @@ if ( ! childComponent.source ) {
 
             } else {
 
-                // For a reentrant call, restore the previous state, move the index forward to cover
-                // the models we called.
+                // For a reentrant call, restore the previous state, move the index forward to 
+                // cover the model drivers we called.
 
                 entries[ thisProperty ] = outerEntry;
                 outerEntry.propertyAssignedByPreviousEntry = true;
@@ -2782,9 +2792,9 @@ if ( ! childComponent.source ) {
             // delegation)
             var entries = this.setProperty.entries;
 
-            // Record calls into this function by nodeID and propertyName so that models may call
-            // back here (directly or indirectly) to delegate responses further down the chain
-            // without causing infinite recursion.
+            // Record calls into this function by nodeID and propertyName so that model drivers 
+            // may call back here (directly or indirectly) to delegate responses further down the
+            // chain without causing infinite recursion.
 
             // TODO: need unique nodeID+propertyName hash
             var thisProperty = nodeID + '-' + propertyName;
@@ -2811,9 +2821,9 @@ if ( ! childComponent.source ) {
             // -actually assigned here
             var delegated = false, assigned = false;
 
-            // Call initializingProperty() on each model. The first model to return a non-undefined 
-            // value has performed the initialize and dictates the return value. The property is 
-            // considered initialized after all models have run.
+            // Call initializingProperty() on each model driver. The first model to return a 
+            // non-undefined value has performed the initialize and dictates the return value. 
+            // The property is considered initialized after all model drivers have run.
             this.models.forEach( function( modelDriver, driverIndex ) {
 
                 // Skip initial model drivers that a previous call has already invoked for this 
@@ -2891,7 +2901,7 @@ if ( ! childComponent.source ) {
             } else {
 
                 // For a reentrant call, restore the previous state, move the index forward to cover
-                // the models we called.
+                // the model drivers we called.
 
                 entries[ thisProperty ] = outerEntry;
                 outerEntry.propertyAssignedByPreviousEntry = true;
@@ -2931,9 +2941,9 @@ if ( ! childComponent.source ) {
 
             var entries = this.setProperty.entries;
 
-            // Record calls into this function by nodeID and propertyName so that models may call
-            // back here (directly or indirectly) to delegate responses further down the chain
-            // without causing infinite recursion.
+            // Record calls into this function by nodeID and propertyName so that model drivers 
+            // may call back here (directly or indirectly) to delegate responses further down the
+            // chain without causing infinite recursion.
 
             // TODO: need unique nodeID+propertyName hash
             var thisProperty = nodeID + '-' + propertyName;
@@ -2958,9 +2968,9 @@ if ( ! childComponent.source ) {
             // -actually assigned here
             var delegated = false, assigned = false;
 
-            // Call settingProperty() on each model. The first model to return a non-undefined 
-            // value has performed the set and dictates the return value. The property is 
-            // considered set after all models have run.
+            // Call settingProperty() on each model driver. The first model driver to return a 
+            // non-undefined value has performed the set and dictates the return value.
+            // The property is considered set after all model drivers have run.
             this.models.some( function( modelDriver, driverIndex ) {
 
                 // Skip initial model drivers that a previous call has already invoked for this 
@@ -3064,16 +3074,16 @@ if ( ! childComponent.source ) {
 
             this.logger.debuggx( "getProperty", nodeID, propertyName );
 
-            // Call gettingProperty() on each model. The first model to return a non-undefined value
-            // dictates the return value.
+            // Call gettingProperty() on each model driver. The first model driver to return a 
+            // non-undefined value dictates the return value.
 
             var propertyValue = undefined;
 
             var entries = this.getProperty.entries;
 
-            // Record calls into this function by nodeID and propertyName so that models may call
-            // back here (directly or indirectly) to delegate responses further down the chain
-            // without causing infinite recursion.
+            // Record calls into this function by nodeID and propertyName so that model drivers 
+            // may call back here (directly or indirectly) to delegate responses further down the
+            // chain without causing infinite recursion.
 
             // TODO: need unique nodeID+propertyName hash
             var thisProperty = nodeID + '-' + propertyName;
@@ -3092,8 +3102,8 @@ if ( ! childComponent.source ) {
             // -actually retrieved here
             var retrieved = false;
 
-            // Call gettingProperty() on each model. The first model to return a non-undefined 
-            // value dictates the return value.
+            // Call gettingProperty() on each model driver.
+            // The first model driver to return a non-undefined value dictates the return value.
             this.models.some( function( modelDriver, driverIndex ) {
 
                 // Skip initial model drivers that a previous call has already invoked for this 
@@ -3201,8 +3211,8 @@ if ( ! childComponent.source ) {
 
             this.logger.debuggx( "createMethod", nodeID, methodName, methodParameters );
 
-            // Call creatingMethod() on each model. The method is considered created after all
-            // models have run.
+            // Call creatingMethod() on each model driver.
+            // The method is considered created after all model drivers have run.
 
             this.models.forEach( function( model ) {
                 model.creatingMethod && model.creatingMethod( nodeID, methodName, methodParameters, methodBody );
@@ -3230,8 +3240,8 @@ if ( ! childComponent.source ) {
                 return [ nodeID, methodName, JSON.stringify( loggableValues( methodParameters ) ) ];
             } );
 
-            // Call callingMethod() on each model. The first model to return a non-undefined value
-            // dictates the return value.
+            // Call callingMethod() on each model driver.
+            // The first model driver to return a non-undefined value dictates the return value.
 
             var methodValue = undefined;
 
@@ -3261,8 +3271,8 @@ if ( ! childComponent.source ) {
 
             this.logger.debuggx( "createEvent", nodeID, eventName, eventParameters );
 
-            // Call creatingEvent() on each model. The event is considered created after all models
-            // have run.
+            // Call creatingEvent() on each model driver.
+            // The event is considered created after all model drivers have run.
 
             this.models.forEach( function( model ) {
                 model.creatingEvent && model.creatingEvent( nodeID, eventName, eventParameters );
@@ -3290,13 +3300,13 @@ if ( ! childComponent.source ) {
                 return [ nodeID, eventName, JSON.stringify( loggableValues( eventParameters ) ) ];
             } );
 
-            // Call firingEvent() on each model.
+            // Call firingEvent() on each model driver.
 
             var handled = this.models.reduce( function( handled, model ) {
                 return model.firingEvent && model.firingEvent( nodeID, eventName, eventParameters ) || handled;
             }, false );
 
-            // Call firedEvent() on each view.
+            // Call firedEvent() on each view driver
 
             this.views.forEach( function( view ) {
                 view.firedEvent && view.firedEvent( nodeID, eventName, eventParameters );
@@ -3416,8 +3426,8 @@ if ( ! childComponent.source ) {
                 scriptType = "application/javascript";
             }
 
-            // Call executing() on each model. The script is considered executed after all models
-            // have run.
+            // Call executing() on each model driver.
+            // The script is considered executed after all model drivers have run.
 
             var scriptValue = undefined;
 
