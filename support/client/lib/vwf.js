@@ -4633,7 +4633,7 @@ if ( ! childComponent.source ) {
 
         // Contains the meat of what happens in createProperty and initializeProperty
         var modifyProperty = function( action, nodeID, propertyName, propertyValue, 
-                                        propertyGet, propertySet ) {
+                                       propertyGet, propertySet ) {
 
             var node = nodes.existing[ nodeID ];
             var modelFunc;
@@ -4757,7 +4757,7 @@ if ( ! childComponent.source ) {
                     }
                 }
 
-                propertyHasBeenSet = assigned || delegated;
+                propertyHasBeenSet = propertyHasBeenSet || assigned || delegated;
                 return propertyHasBeenSet && stopAfterSet;
             }, this );
 
