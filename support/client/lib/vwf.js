@@ -2751,7 +2751,8 @@ if ( ! childComponent.source ) {
                 thisEntry.driverIndex = driverIndex;
 
                 // Make the call.
-                var value = modelDriver.gettingProperty && modelDriver.gettingProperty( nodeID, propertyName, propertyValue );  // TODO: probably don't need propertyValue here
+                var value = modelDriver.gettingProperty &&
+                            modelDriver.gettingProperty( nodeID, propertyName, propertyValue );  // TODO: probably don't need propertyValue here
 
                 // Look for a return value potentially stored here by a reentrant call if the
                 // model driver didn't return one explicitly (such as with a JavaScript 
@@ -4581,9 +4582,12 @@ if ( ! childComponent.source ) {
 
                 // Make the call.
                 if ( !propertyHasBeenSet ) {
-                    var value = modelDriver[ modelFunc ] && modelDriver[ modelFunc ]( nodeID, propertyName, propertyValue, propertyGet, propertySet );
+                    var value = modelDriver[ modelFunc ] &&
+                                modelDriver[ modelFunc ]( nodeID, propertyName, propertyValue,
+                                                          propertyGet, propertySet );
                 } else {
-                    modelDriver[ modelFunc ] && modelDriver[ modelFunc ]( nodeID, propertyName, undefined, propertyGet, propertySet );
+                    modelDriver[ modelFunc ] &&
+                    modelDriver[ modelFunc ]( nodeID, propertyName, undefined, propertyGet, propertySet );
                 }
 
                 // Ignore the result if reentry is disabled and the driver attempted to call
