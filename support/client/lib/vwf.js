@@ -2723,18 +2723,12 @@ if ( ! childComponent.source ) {
             // non-undefined value dictates the return value.
 
             var propertyValue = undefined;
-
             var entries = this.getProperty.entries;
             var entryManager = createEntry( entries, nodeID, propertyName );
             var thisProperty = entryManager.thisProperty;
             var thisEntry = entryManager.thisEntry;
             var outerEntry = entryManager.outerEntry;
             var isOutermostEntry = entryManager.isOutermostEntry;
-
-            // We'll need to know if the get was:
-            // -delegated to other properties or
-            // -actually retrieved here
-            var retrieved = false;
 
             // Call gettingProperty() on each model driver.
             // The first model driver to return a non-undefined value dictates the return value.
