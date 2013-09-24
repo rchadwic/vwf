@@ -2719,9 +2719,6 @@ if ( ! childComponent.source ) {
 
             this.logger.debuggx( "getProperty", nodeID, propertyName );
 
-            // Call gettingProperty() on each model driver. The first model driver to return a 
-            // non-undefined value dictates the return value.
-
             var propertyValue = undefined;
             var entries = this.getProperty.entries;
             var entryManager = createEntry( entries, nodeID, propertyName );
