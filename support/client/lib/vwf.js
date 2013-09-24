@@ -2775,14 +2775,15 @@ if ( ! childComponent.source ) {
                 }
 
                 var valueExists = ( value !== undefined );
-
-                // Record the value retrieved.
                 if ( valueExists ) {
+                    // Record the retrieved value and exit the this.models.some() iterator
                     propertyValue = value;
+                    return true;
+                } else {
+                    // A value has not yet been retrieved so continue to the next
+                    // this.models.some() iteration
+                    return false;
                 }
-
-                // Exit from the this.models.some() iterator once we have a return value.
-                return valueExists;
 
             }, this );
 
