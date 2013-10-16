@@ -38,7 +38,6 @@ end
 
 task :web => "web/catalog.html"  do
 
-
     # Add the build tools to the path.
     original_path = ENV["PATH"]
     ENV["PATH"] = File.expand_path( "../support/build/Pygments-1.4" ) + ":" + ENV["PATH"]
@@ -48,73 +47,27 @@ task :web => "web/catalog.html"  do
     FileList[ "web/*.md" ].each do |md|
         if md == "web/about.md"
             sh "( cat web/format/preamble ; kramdown 'web/format/carousel.md' ;  kramdown 'web/about.md' ; cat web/format/postamble ) > 'web/about.html'"
-        elsif md == "web/glossary.md"
-            sh "( cat web/format/preamble ; kramdown 'web/format/glossarypre.md' ;  kramdown 'web/glossary.md' ; cat web/format/postamble ) > 'web/glossary.html'"
-        else
+        elsif md == "web/documentation.md"
+            sh "( cat web/format/preamble ; cat web/format/docs.preamble ; kramdown 'web/documentation.md' ; cat web/format/docs.postamble ; cat web/format/postamble ) > 'web/documentation.html'"
+        else # web/forum.md
             sh "( cat web/format/preamble ; kramdown '#{md}' ; cat web/format/postamble ) > '#{ md.ext ".html" }'"
         end
     end
 
+    # Render the catalog pages (web/catalog.htm & web/gallery.htm)
+
+    FileList[ "web/*.htm" ].each do |htm|
+        sh "( cat web/format/preamble ; cat '#{htm}' ; cat web/format/postamble ) > '#{ htm.ext ".html" }'"
+    end
+
+    # Render the documentation pages
+
     FileList[ "web/docs/**/*.md" ].each do |md|
         sh "( cat web/docs/format/preamble ; kramdown '#{md}' ; cat web/docs/format/postamble ) > '#{ md.ext ".html" }'"
     end
-
-    # Generate the Rocco annotated source.
-
-    sh "rocco web/docs/application/*.vwf.yaml"
-    sh "rocco web/docs/application/example.js"
 
     # Restore the path.
 
     ENV["PATH"] = original_path
 
 end
-
-desc "Generate the catalog."
-
-file "web/catalog.html" => "web/catalog.html.erb" do |task|
-
-    component_types = [ :json, :yaml ]
-    image_types = [ :png, :jpg, :gif ]
-
-    patterns = component_types.map { |type| "**/*.vwf.#{type}" }
-
-    applications = FileList.new( patterns ).sort.map do |file|
-
-        path, name = File.split file
-
-        ext = File.extname name
-        base = File.basename name, ext
-
-        type = image_types.find do |type|
-            File.exist? "#{path}/#{base}.catalog.#{type}"
-        end
-
-        descr = ""
-        begin
-            descrFile = YAML.load( File.read( "#{path}/#{base}.catalog.yaml" ) )
-            descr = descrFile["description"]
-        rescue => err
-            err
-        end
-
-        [
-            ( base == "index.vwf" ? path : file ),
-            type && "#{path}/#{base}.catalog.#{type}",
-            path, 
-            descr
-        ]
-
-    end .select do |application, image, name, description|
-
-        image
-
-    end
-
-    File.open( task.name, "w" ) do |io|
-        io.write Tilt.new( task.prerequisites.first ).
-            render Object.new, :applications => applications
-    end
-
-end
-

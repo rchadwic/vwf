@@ -159,8 +159,8 @@ footer ul li {
 	color:#444456;
 	width:185px;
 	float:left;
-	position:relative;
-	margin-top: 45px;
+	position:fixed;
+	margin-top: 10px;
 }
 .navmenu a:visited {
 	color:#3366CC;	

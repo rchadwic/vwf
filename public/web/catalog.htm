@@ -1,0 +1,276 @@
+
+		<!-- Add instance information scripts -->
+    <script type='text/javascript'>
+      function showInfo(app, query)
+      {
+        function update(app) 
+		{
+			 var instances$ = $('.'+ app.replace(/\//g,'') + 'instances');
+			 var match;
+			 jQuery.getJSON( "../" + app + "/admin/instances", function( data ) {
+			 instances$.empty();
+			 instances$.html("<p><b>Current Sessions</b></p>");
+					jQuery.each
+						( 
+						data, function( key, value ) 
+							{
+							  if ( match = /* assignment! */ key.match( RegExp( "/([^/]*)$" ) ) )
+							  { 
+									var instanceHTML = htmlEscape( match[1] );
+									var size = Object.size(value.clients); 
+									instances$.append("<table style='width:75%;'><tr><td style='width:10%;'><span class='badge badge-success'>" + size + "</span>"+"</td><td style='width:60%;'>Name: " + instanceHTML + "</td><td style='text-align:right;width:30%;'><a class='btn btn-success btn-small' target='_blank' href='../" + app + "/" + instanceHTML + ( query || "" ) + "'>Join Session</a>" + "</td></tr></table>" );
+							  }
+							} 
+						);
+					setTimeout(update, 60000, app);
+				  });
+				
+		}
+        update(app);
+
+      }
+    </script>
+    <script>
+
+      // From http://stackoverflow.com/a/7124052
+
+      function htmlEscape( string ) {
+        return String( string ).
+          replace( /&/g, "&amp;" ).
+          replace( /"/g, "&quot;" ).
+          replace( /'/g, "&#39;" ).
+          replace( /</g, "&lt;" ).
+          replace( />/g, "&gt;" );
+      }
+
+      Object.size = function(obj) { 
+        var size = 0, key; 
+        for (key in obj) { 
+          if (obj.hasOwnProperty(key)) size++; 
+        } 
+        return size; 
+      }; 
+
+    </script>
+
+    <div class="span12">
+
+      <!-- bzflag -->
+			<div style="padding-top: 15px;" class="bzflaghover">
+				<table class="table table-striped">
+					<tr>
+						<td style="width:25%">
+								<a href="../bzflag" target="_blank">
+								<img src="../bzflag/index.vwf.catalog.png" alt="bzflag" / style="vertical-align:middle;">            
+						  </a>
+						</td>
+						<td style="width:75%">
+							  <h3 style="float:left;vertical-align:middle;">bzflag</h3> 
+							  <a style="float:right;vertical-align:middle;" class="btn btn-info btn-small" target="_blank" href="../bzflag">
+							  Launch New Session</a>
+							  <br/>
+							  <hr>
+							  <p style="font-size:13px;">The bzflag application is the Virtual World Framework's version of the classic arcade game. Use the WASD keys to navigate the scene and the Enter key to fire a laser. Use the chat feature to communicate and taunt your opponents, but most of all look out for opposing tanks!</p>
+							  <br/>
+							  <div id='bzflag-content' class='overlayContent'>
+								  <div class="overlay">
+									  <div class='bzflaginstances'>
+										<p><b>Current Sessions</b></p>
+									</div>
+									<script type="text/javascript">
+									$(document.getElementById('bzflaginstances')).ready(showInfo('bzflag', ''));							
+									</script>
+								</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- END bzflag -->
+
+    </div>
+
+    <div class="span12">
+
+	    <!-- command-center -->
+			<div style="padding-top: 15px;" class="command-centerhover">
+				<table class="table table-striped">
+					<tr>
+						<td style="width:25%">
+								<a href="../command-center" target="_blank">
+								<img src="../command-center/index.vwf.catalog.png" alt="command-center" / style="vertical-align:middle;">            
+						  </a>
+						</td>
+						<td style="width:75%">
+							  <h3 style="float:left;vertical-align:middle;">command-center</h3> 
+							  <a style="float:right;vertical-align:middle;" class="btn btn-info btn-small" target="_blank" href="../command-center">
+							  Launch New Session</a>
+							  <br/>
+							  <hr>
+							  <p style="font-size:13px;">The command center application is a collaborative training environment. Navigate using the standard key and mouse controls.</p>
+							  <br/>
+							  <div id='command-center-content' class='overlayContent'>
+								  <div class="overlay">
+									  <div class='command-centerinstances'>
+										<p><b>Current Sessions</b></p>
+									</div>
+									<script type="text/javascript">
+									$(document.getElementById('command-centerinstances')).ready(showInfo('command-center', ''));							
+									</script>
+								</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- END command-center -->
+
+    </div>
+
+    <div class="span12">
+
+      <!-- humvee-lesson -->
+			<div style="padding-top: 15px;" class="humvee-lessonhover">
+				<table class="table table-striped">
+					<tr>
+						<td style="width:25%">
+								<a href="../humvee-lesson" target="_blank">
+								<img src="../humvee-lesson/index.vwf.catalog.png" alt="humvee-lesson" / style="vertical-align:middle;">            
+						  </a>
+						</td>
+						<td style="width:75%">
+							  <h3 style="float:left;vertical-align:middle;">humvee-lesson</h3> 
+							  <a style="float:right;vertical-align:middle;" class="btn btn-info btn-small" target="_blank" href="../humvee-lesson">
+							  Launch New Session</a>
+							  <br/>
+							  <hr>
+							  <p style="font-size:13px;">Using the VWF lesson configuration and interface, the humvee lesson application walks the user through the process of starting and driving the humvee.</p>
+							  <br/>
+							  <div id='humvee-lesson-content' class='overlayContent'>
+								  <div class="overlay">
+									  <div class='humvee-lessoninstances'>
+										<p><b>Current Sessions</b></p>
+									</div>
+									<script type="text/javascript">
+									$(document.getElementById('humvee-lessoninstances')).ready(showInfo('humvee-lesson', ''));							
+									</script>
+								</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- END humvee-lesson -->
+
+    </div>
+
+    <div class="span12">
+
+      <!-- radio-lesson -->
+			<div style="padding-top: 15px;" class="radio-lessonhover">
+				<table class="table table-striped">
+					<tr>
+						<td style="width:25%">
+								<a href="../radio-lesson" target="_blank">
+								<img src="../radio-lesson/index.vwf.catalog.png" alt="radio-lesson" / style="vertical-align:middle;">            
+						  </a>
+						</td>
+						<td style="width:75%">
+							  <h3 style="float:left;vertical-align:middle;">radio-lesson</h3> 
+							  <a style="float:right;vertical-align:middle;" class="btn btn-info btn-small" target="_blank" href="../radio-lesson">
+							  Launch New Session</a>
+							  <br/>
+							  <hr>
+							  <p style="font-size:13px;">The radio lesson application walks a user through turning the radio on and its basic operations using the VWF lesson interface.</p>
+							  <br/>
+							  <div id='radio-lesson-content' class='overlayContent'>
+								  <div class="overlay">
+									  <div class='radio-lessoninstances'>
+										<p><b>Current Sessions</b></p>
+									</div>
+									<script type="text/javascript">
+									$(document.getElementById('radio-lessoninstances')).ready(showInfo('radio-lesson', ''));							
+									</script>
+								</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- END radio-lesson -->
+
+    </div>
+
+    <div class="span12">
+
+	    <!-- minesweeper -->
+			<div style="padding-top: 15px;" class="minesweeperhover">
+				<table class="table table-striped">
+					<tr>
+						<td style="width:25%">
+								<a href="../minesweeper" target="_blank">
+								<img src="../minesweeper/index.vwf.catalog.png" alt="minesweeper" / style="vertical-align:middle;">            
+						  </a>
+						</td>
+						<td style="width:75%">
+							  <h3 style="float:left;vertical-align:middle;">minesweeper</h3> 
+							  <a style="float:right;vertical-align:middle;" class="btn btn-info btn-small" target="_blank" href="../minesweeper">
+							  Launch New Session</a>
+							  <br/>
+							  <hr>
+							  <p style="font-size:13px;">The VWF's take on the class Minesweeper game. Click tiles to turn them over. The number that appears is representative of the number of neighboring mines. Unveiling all numbers wins the game - select the wrong tile and it's game over.</p>
+							  <br/>
+							  <div id='minesweeper-content' class='overlayContent'>
+								  <div class="overlay">
+									  <div class='minesweeperinstances'>
+										<p><b>Current Sessions</b></p>
+									</div>
+									<script type="text/javascript">
+									$(document.getElementById('minesweeperinstances')).ready(showInfo('minesweeper', ''));							
+									</script>
+								</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- END minesweeper -->
+
+    </div>
+
+    <div class="span12">
+
+      <!-- chat -->
+			<div style="padding-top: 15px;" class="chathover">
+				<table class="table table-striped">
+					<tr>
+						<td style="width:25%">
+								<a href="../chat" target="_blank">
+								<img src="../chat/index.vwf.catalog.png" alt="chat" / style="vertical-align:middle;">            
+						  </a>
+						</td>
+						<td style="width:75%">
+							  <h3 style="float:left;vertical-align:middle;">chat</h3> 
+							  <a style="float:right;vertical-align:middle;" class="btn btn-info btn-small" target="_blank" href="../chat">
+							  Launch New Session</a>
+							  <br/>
+							  <hr>
+							  <p style="font-size:13px;">Chat is a simple chat application, demonstrating techniques described in the chat cookbook recipe, as well as to showcase a non-3D text-based replicated environment.</p>
+							  <br/>
+							  <div id='chat-content' class='overlayContent'>
+								  <div class="overlay">
+									  <div class='chatinstances'>
+										<p><b>Current Sessions</b></p>
+									</div>
+									<script type="text/javascript">
+									$(document.getElementById('chatinstances')).ready(showInfo('chat', ''));							
+									</script>
+								</div>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<!-- END chat -->
+
+    </div>
